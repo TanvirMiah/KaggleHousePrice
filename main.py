@@ -153,5 +153,4 @@ for columnNo in range (0, 74):
         mean_perc = standard_dev/sale_mean
         #add it to the column to compare
         std_df = std_df.append({'Feature' : cols[columnNo], 'Standard Deviation' : standard_dev, 'Percentage from Mean' : mean_perc[0]}, ignore_index = True)
-        
-        
+#Workout how to use standard deviations to calculate effectiveness
