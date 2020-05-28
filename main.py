@@ -98,13 +98,60 @@ Right now there are still 74 features left.
 To help reduce this, let's plot the house price against the numerical feature and calculate the
 correlation.
 '''
-train = train.drop(['PoolQC', 'MiscFeature', 'Alley', 'Fence', 'FireplaceQu'], axis = 1)
-submission_test = submission_test.drop(['PoolQC', 'MiscFeature', 'Alley', 'Fence', 'FireplaceQu'], axis = 1)
+train = train.drop(['PoolQC', 'MiscFeature', 'Alley', 'Fence', 'FireplaceQu', 'Id'], axis = 1)
+submission_test = submission_test.drop(['PoolQC', 'MiscFeature', 'Alley', 'Fence', 'FireplaceQu', 'Id'], axis = 1)
 
+#create this so it is easier to append the columns into the dataframe used to record the pearson R value
+cols = train.columns
 corr_df = pd.DataFrame(columns=['Feature', 'Pearsons R'])
-dfx = train['MSSubClass'].dropna()
-dfy = train['SalePrice'].dropna()
-pearson_r = scipy.stats.pearsonr(dfx, dfy)[0]
-corr_df = corr_df.append({'Feature' : 'MSSubClass', 'Pearsons R' : pearson_r}, ignore_index = True)
 
-#if (np.issubdtype(train.dropna().iloc[0,0], !np.number))
+#check from columns 0 -> 74 as we know there are 74 features left
+for columnNo in range (0, 74):
+    #checks if the first item in the row is a number
+    if isinstance(train.dropna().iloc[0,columnNo], str) == False:
+        #if so make a temp dataframe with the numerical values with the sale price
+        df = train.iloc[:, [columnNo, 74]].dropna()
+        #calculate the R value and only take the R value, as this function outputs a P-value too
+        pearson_r = scipy.stats.pearsonr(df.iloc[:,0], df.iloc[:,1])[0]
+        #add it to the column to compare
+        corr_df = corr_df.append({'Feature' : cols[columnNo], 'Pearsons R' : pearson_r}, ignore_index = True)
+        
+'''
+We want to keep features that have a strong negative or positive correlation, 
+and ignore the features that don't have a strong correlation. Using this logic
+I will keep only the features that have R value ranging between -1 -> -0.6 and 
+0.6 -> 1.
+This now means we can keep:
+    OverallQual
+    GrLivArea
+    GarageCars
+    GarageArea
+We've now narrowed down 36 numerical values down to 4. Depending on the analysis
+of the non numerical values, I will drop GarageCars and GarageArea too.
+
+To test the non-numerical features, I will get the mean value of each category 
+of each feature and see if there is a difference in value of the mean value of the sale.
+I will judge the effect a feature has by checking the standard deviation of the values.
+For example for 'MSZoning', there are 4 possible values, 'C', 'FV', 'RL' and 'RM'.
+If the standard deviation for the sale value for each of the 4 possible values is the low, then I will 
+deem that feature not having an impact on the sale price.
+'''
+
+train_test = train[['OverallQual', 'GrLivArea', 'GarageCars', 'GarageArea', 'SalePrice']]
+
+std_df = pd.DataFrame(columns=['Feature', 'Standard Deviation', 'Percentage from Mean'])
+sale_mean = train[['SalePrice']].mean()
+#check from columns 0 -> 74 as we know there are 74 features left
+for columnNo in range (0, 74):
+    #checks if the first item in the row is a string
+    if isinstance(train.dropna().iloc[0,columnNo], str) == True:
+        #calculate the mean value per category of the column
+        pivot = train.iloc[:, [columnNo, 74]].dropna().groupby([cols[columnNo]], as_index=False).mean().sort_values(by=cols[columnNo], ascending=False)
+        #calculate the Standard deviation
+        standard_dev = np.std(pivot.iloc[:, 1])
+        #compare standard deviation with the Sale Mean to get a percentage difference
+        mean_perc = standard_dev/sale_mean
+        #add it to the column to compare
+        std_df = std_df.append({'Feature' : cols[columnNo], 'Standard Deviation' : standard_dev, 'Percentage from Mean' : mean_perc[0]}, ignore_index = True)
+        
+        
