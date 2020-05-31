@@ -126,8 +126,11 @@ This now means we can keep:
     GrLivArea
     GarageCars
     GarageArea
-We've now narrowed down 36 numerical values down to 4. Depending on the analysis
-of the non numerical values, I will drop GarageCars and GarageArea too.
+    TotalBsmtSF
+We've now narrowed down 36 numerical values down to 5. Depending on the analysis
+of the non numerical values, I will drop GarageCars and GarageArea too and the
+basement square foot can be combined with the basement quality. Some of these 
+features can be engineered and reduced. I will look at this later.
 
 To test the non-numerical features, I will get the mean value of each category 
 of each feature and see if there is a difference in value of the mean value of the sale.
@@ -137,7 +140,7 @@ If the standard deviation for the sale value for each of the 4 possible values i
 deem that feature not having an impact on the sale price.
 '''
 
-train_test = train[['OverallQual', 'GrLivArea', 'GarageCars', 'GarageArea', 'SalePrice']]
+
 
 std_df = pd.DataFrame(columns=['Feature', 'Standard Deviation', 'Percentage from Mean'])
 sale_mean = train[['SalePrice']].mean()
@@ -153,4 +156,35 @@ for columnNo in range (0, 74):
         mean_perc = standard_dev/sale_mean
         #add it to the column to compare
         std_df = std_df.append({'Feature' : cols[columnNo], 'Standard Deviation' : standard_dev, 'Percentage from Mean' : mean_perc[0]}, ignore_index = True)
-#Workout how to use standard deviations to calculate effectiveness
+
+'''
+There are quite a few features here that have quite a large standard deviation.
+Let's look at the features that have a standard deviation of 70k Plus:
+    ExterQual - Exterior Quality
+    KitchenQual - Kitchen Quality
+    BsmtQual - Basement Quality
+    Condition2 - Other ammenities nearby (if at all)
+    RoofMatl- Roof Material
+For now I will use these features.
+'''    
+train_test = train[['OverallQual', 'GrLivArea', 'GarageCars', 'GarageArea', 'ExterQual', 'KitchenQual', 'BsmtQual', 'Condition2', 'RoofMatl', 'SalePrice']]
+submission = submission_test[['OverallQual', 'GrLivArea', 'GarageCars', 'GarageArea', 'ExterQual', 'KitchenQual', 'BsmtQual', 'Condition2', 'RoofMatl']]
+
+'''
+Now that we have the final few columns, lets examine them.
+I can immediately see that 'GarageCars' and 'GarageArea' are linked. These two columns
+can be combined. We can bin the area size into 4/5 bins and then multiply this 
+with the amount of cars that can be in the garage. The basement quality can be 
+label encoded and then combined with the square area. As GarageCars and 
+GarageArea are already numerical and don't recquire encoding, so I will work
+with this data first.
+'''
+
+#First check how many NA there are in those 2 features
+train_null_values = train_test.isnull().sum().sort_values(ascending=False)
+submission_test_null_values = submission.isnull().sum().sort_values(ascending=False)
+
+#BsmtQual has a few NA's and the GarageArea and GarageCars have a couple of NA's
+#which I will deal with after combining it in train
+
+#train['FareBand'] = pd.qcut(train['Fare'], 4)
