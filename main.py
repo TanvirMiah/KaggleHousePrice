@@ -201,18 +201,19 @@ The bin sizes are:
     660 -> 1418
 I will now create a column encoding the garage area
 '''
-for value in train_test in range(0, 1460): 
-    if train_test.iloc[value, 3] <= 281:
-        train_test.iloc[value, 3] = 1
-    elif train_test.iloc[value, 3] > 281 & train_test.iloc[value, 3] <= 400:
-        train_test.iloc[value, 3] = 2
-    elif train_test.iloc[value, 3] > 400 & train_test.iloc[value, 3] <= 480:
-        train_test.iloc[value, 3] = 3
-    elif train_test.iloc[value, 3] > 480 & train_test.iloc[value, 3] <= 540:
-        train_test.iloc[value, 3] = 4
-    elif train_test.iloc[value, 3] > 540 & train_test.iloc[value, 3] <= 660:
-        train_test.iloc[value, 3] = 5
-    else:
-        train_test.iloc[value, 3] = 6
-    
-#train['FareBand'] = pd.qcut(train['Fare'], 4)
+
+train_test['GarageBins'] = pd.cut(x=train_test['GarageArea'], bins=[-1, 281, 400, 480, 540, 660, 1450], labels=[1, 2, 3, 4, 5, 6])
+train_test['GarageBins'] = train_test['GarageBins'].astype('int64')
+
+train_test['GarageSize'] = train_test['GarageCars'] * train_test['GarageBins']
+train_test = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'ExterQual', 'KitchenQual', 'BsmtQual', 'Condition2', 'RoofMatl', 'SalePrice']]
+
+#There is one NA value in the submission. As both for Garage Cars and Garage Bins are NA, I will fill this row in as 0
+submission['GarageCars'] = submission['GarageCars'].fillna(0)
+submission['GarageCars'] = submission['GarageArea'].fillna(0)
+
+submission['GarageBins'] = pd.cut(x=submission['GarageArea'], bins=[-1, 281, 400, 480, 540, 660, 1450], labels=[1, 2, 3, 4, 5, 6])
+submission['GarageBins'] = submission['GarageBins'].astype('int64')
+
+submission['GarageSize'] = submission['GarageCars'] * submission['GarageBins']
+submission = submission[['OverallQual', 'GrLivArea', 'GarageSize', 'ExterQual', 'KitchenQual', 'BsmtQual', 'Condition2', 'RoofMatl']]
