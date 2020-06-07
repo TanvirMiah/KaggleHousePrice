@@ -186,5 +186,33 @@ submission_test_null_values = submission.isnull().sum().sort_values(ascending=Fa
 
 #BsmtQual has a few NA's and the GarageArea and GarageCars have a couple of NA's
 #which I will deal with after combining it in train
+garage_bin = train_test['GarageArea']
+garage_bin= np.array(garage_bin, dtype=float)
+garage_bands = pd.qcut(garage_bin, 6)
 
+'''
+By doing qcut, we divided by the garagearea into 6 equally sized bins by value.
+The bin sizes are: 
+    0 -> 281
+    281 -> 400
+    400 -> 480
+    480 -> 540
+    540 -> 660
+    660 -> 1418
+I will now create a column encoding the garage area
+'''
+for value in train_test in range(0, 1460): 
+    if train_test.iloc[value, 3] <= 281:
+        train_test.iloc[value, 3] = 1
+    elif train_test.iloc[value, 3] > 281 & train_test.iloc[value, 3] <= 400:
+        train_test.iloc[value, 3] = 2
+    elif train_test.iloc[value, 3] > 400 & train_test.iloc[value, 3] <= 480:
+        train_test.iloc[value, 3] = 3
+    elif train_test.iloc[value, 3] > 480 & train_test.iloc[value, 3] <= 540:
+        train_test.iloc[value, 3] = 4
+    elif train_test.iloc[value, 3] > 540 & train_test.iloc[value, 3] <= 660:
+        train_test.iloc[value, 3] = 5
+    else:
+        train_test.iloc[value, 3] = 6
+    
 #train['FareBand'] = pd.qcut(train['Fare'], 4)
