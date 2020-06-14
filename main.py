@@ -210,10 +210,52 @@ train_test = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'ExterQual', 
 
 #There is one NA value in the submission. As both for Garage Cars and Garage Bins are NA, I will fill this row in as 0
 submission['GarageCars'] = submission['GarageCars'].fillna(0)
-submission['GarageCars'] = submission['GarageArea'].fillna(0)
+submission['GarageArea'] = submission['GarageArea'].fillna(0)
 
 submission['GarageBins'] = pd.cut(x=submission['GarageArea'], bins=[-1, 281, 400, 480, 540, 660, 1450], labels=[1, 2, 3, 4, 5, 6])
 submission['GarageBins'] = submission['GarageBins'].astype('int64')
 
 submission['GarageSize'] = submission['GarageCars'] * submission['GarageBins']
 submission = submission[['OverallQual', 'GrLivArea', 'GarageSize', 'ExterQual', 'KitchenQual', 'BsmtQual', 'Condition2', 'RoofMatl']]
+
+'''
+Next if we look at the columns ExterQual, KitchQual and BsmtQual.
+They are all rating the quality of a house part from poor - excellent. For that reason, 
+I will label encode (convert from words to 1-5 rating) all three columns, and then
+combine them by adding them to give a total overall quality. 
+Basement quality has some NA's so will need to find the average value of the 
+ExterQual and KitchQual and the corresponding BsmtQual of the known values
+and then use that to fill in the information
+'''
+quality_mapping = {"Ex" : 5, "Gd" : 4, "TA" : 3, "Fa" : 2, "Po" : 1}
+train_test['ExterQual'] = train_test['ExterQual'].map(quality_mapping)
+train_test['KitchenQual'] = train_test['KitchenQual'].map(quality_mapping)
+train_test['BsmtQual'] = train_test['BsmtQual'].map(quality_mapping)
+train_test['TotalQual'] = train_test['ExterQual'] + train_test['KitchenQual']
+
+'''
+I'm going to make a pivot table that get's the average total quality score per
+basement quality score. From there I will use that to fill in values for the NA
+'''
+basment_pivot = train_test[['BsmtQual', 'TotalQual']].groupby(['BsmtQual'], as_index=False).mean().sort_values(by='TotalQual', ascending=False)
+
+'''
+As we can see, anything near a 9, we can assume the basement is in excellent quality.
+Anything near an 7, we can assume the basement is in good quality.
+Anything near a 6 we can assume the basement is in typical to fair quality.
+I will do the following:
+    Above 8 = Excellent
+    7 = Good
+    6 = Typical/Average
+'''
+
+training= train_test
+
+for data in training: 
+    if training.iloc[data, 5] > 0:
+        if training.iloc[data, 9] <= 6:
+            training.iloc[data, 5] = 3
+        elif training.iloc[data, 9] == 7:
+            training.iloc[data, 5] = 4
+        else:
+            training.iloc[data, 5] = 5
