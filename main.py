@@ -51,6 +51,12 @@ import matplotlib as plt
 import seaborn as sn
 import scipy.stats
 
+#machine learning 
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+
 '''
 UNDERSTANDING THE PROBLEM AND DATA
 '''
@@ -163,6 +169,7 @@ Let's look at the features that have a standard deviation of 70k Plus:
     ExterQual - Exterior Quality
     KitchenQual - Kitchen Quality
     BsmtQual - Basement Quality
+    ************************************************
     Condition2 - Other ammenities nearby (if at all)
     RoofMatl- Roof Material
 For now I will use these features.
@@ -249,13 +256,79 @@ I will do the following:
     6 = Typical/Average
 '''
 
-training= train_test
+#fill with 0's so that I can convert the zeros into numbers
+train_test['BsmtQual'] = train_test['BsmtQual'].fillna(0)
 
-for data in training: 
-    if training.iloc[data, 5] > 0:
-        if training.iloc[data, 9] <= 6:
-            training.iloc[data, 5] = 3
-        elif training.iloc[data, 9] == 7:
-            training.iloc[data, 5] = 4
+for number in range(0, 1460):        
+    if train_test.iloc[number,5] == 0:
+        if train_test.iloc[number, 9] <= 6:
+            train_test.iloc[number, 5] = 3
+        elif train_test.iloc[number, 9] == 7:
+            train_test.iloc[number, 5] = 4
         else:
-            training.iloc[data, 5] = 5
+            train_test.iloc[number, 5] = 5
+            
+train_test['TotalQual'] = train_test['ExterQual'] + train_test['KitchenQual'] + train_test['BsmtQual']
+
+train_test = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual', 'Condition2', 'RoofMatl', 'SalePrice']]
+
+#Now do the same thing with the submission dataset
+submission['ExterQual'] = submission['ExterQual'].map(quality_mapping)
+submission['KitchenQual'] = submission['KitchenQual'].map(quality_mapping)
+submission['BsmtQual'] = submission['BsmtQual'].map(quality_mapping)
+submission['TotalQual'] = submission['ExterQual'] + submission['KitchenQual']
+
+#fill with 0's so that I can convert the zeros into numbers
+submission['BsmtQual'] = submission['BsmtQual'].fillna(0)
+
+for number in range(0, 1459):        
+    if submission.iloc[number,5] == 0:
+        if submission.iloc[number, 8] <= 6:
+            submission.iloc[number, 5] = 3
+        elif submission.iloc[number, 8] == 7:
+            submission.iloc[number, 5] = 4
+        else:
+            submission.iloc[number, 5] = 5
+            
+submission['TotalQual'] = submission['ExterQual'] + submission['KitchenQual'] + submission['BsmtQual']
+
+submission = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual', 'Condition2', 'RoofMatl']]
+
+train_null_values = train_test.isnull().sum().sort_values(ascending=False)
+submission_test_null_values = submission.isnull().sum().sort_values(ascending=False)
+
+cond2_pivot = train_test[['Condition2', 'SalePrice']].groupby(['Condition2'], as_index=False).mean().sort_values(by='SalePrice', ascending=False)
+roof_pivot = train_test[['RoofMatl', 'SalePrice']].groupby(['RoofMatl'], as_index=False).mean().sort_values(by='SalePrice', ascending=False)
+
+'''
+I've decided I CBA with the roof material and condition2 at the moment. I'm going to drive forward
+with the 4 features I have at the moment.
+'''
+
+submission = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual']]
+train_test = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual', 'SalePrice']]
+
+'''
+Model Training
+'''
+
+x = train_test.iloc[:, 0:4].values
+y = train_test.iloc[:, 4].values
+
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
+
+poly_reg = PolynomialFeatures(degree = 3)
+x_poly = poly_reg.fit_transform(X_train)
+lin_reg = LinearRegression()
+lin_reg.fit(x_poly, y_train)
+test_predict = lin_reg.predict(X_test)
+
+Dtree = RandomForestRegressor(n_estimators = 20, random_state=0)
+Dtree.fit(X_train, y_train)
+Y_Dtree = Dtree.predict(X_test)
+
+prediction = Dtree.predict(submission)
+df = pd.DataFrame({'SalePrice' : prediction})
+df['Id'] = df.index
+df = df[['Id', 'SalePrice']]
+df.to_csv('submission.csv')
