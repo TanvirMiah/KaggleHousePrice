@@ -56,6 +56,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
+from sklearn.metrics import r2_score
 
 '''
 UNDERSTANDING THE PROBLEM AND DATA
@@ -309,26 +312,41 @@ submission = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual']]
 train_test = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual', 'SalePrice']]
 
 '''
-Model Training
+Time to add Feature Scaling. Need to make all the values in the tables between 1 and -1.
 '''
 
 x = train_test.iloc[:, 0:4].values
 y = train_test.iloc[:, 4].values
 
+#Reshape the Y values so it is an array
+y = y.reshape(len(y), 1)
+
+sc_x = StandardScaler()
+x = sc_x.fit_transform(x)
+
+sc_y = StandardScaler()
+y = sc_y.fit_transform(y)
+'''
+Model Training
+'''
+
 X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
-poly_reg = PolynomialFeatures(degree = 3)
-x_poly = poly_reg.fit_transform(X_train)
-lin_reg = LinearRegression()
-lin_reg.fit(x_poly, y_train)
-test_predict = lin_reg.predict(X_test)
+#SVM
+regressor = SVR(kernel = 'rbf')
+regressor.fit(X_train, y_train)
 
-Dtree = RandomForestRegressor(n_estimators = 20, random_state=0)
+prediction = regressor.predict(X_test)
+accuracy_svm = r2_score(y_test, prediction)
+
+#RandomForest
+Dtree = RandomForestRegressor(n_estimators = 200, random_state=0)
 Dtree.fit(X_train, y_train)
 Y_Dtree = Dtree.predict(X_test)
+accuracy_Dtree = r2_score(y_test, Y_Dtree)
 
-prediction = Dtree.predict(submission)
-df = pd.DataFrame({'SalePrice' : prediction})
+prediction_submission = Dtree.predict(submission)
+df = pd.DataFrame({'SalePrice' : prediction_submission})
 df['Id'] = df.index
 df = df[['Id', 'SalePrice']]
 df.to_csv('submission.csv')
