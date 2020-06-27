@@ -347,6 +347,7 @@ accuracy_Dtree = r2_score(y_test, Y_Dtree)
 
 prediction_submission = Dtree.predict(submission)
 df = pd.DataFrame({'SalePrice' : prediction_submission})
-df['Id'] = df.index
+df['Id'] = submission_test['Id']
 df = df[['Id', 'SalePrice']]
 df.to_csv('submission.csv')
+print(df.columns.values)
