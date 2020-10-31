@@ -301,8 +301,8 @@ cond2_pivot = train_test[['Condition2', 'SalePrice']].groupby(['Condition2'], as
 roof_pivot = train_test[['RoofMatl', 'SalePrice']].groupby(['RoofMatl'], as_index=False).mean().sort_values(by='SalePrice', ascending=False)
 
 '''
-I've decided I CBA with the roof material and condition2 at the moment. I'm going to drive forward
-with the 4 features I have at the moment.
+For the time being I will drive forward with the 4 features I have at the moment.
+I will revisit with the roof material and condition2 features.
 '''
 
 submission = train_test[['OverallQual', 'GrLivArea', 'GarageSize', 'TotalQual']]
